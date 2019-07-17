@@ -47,13 +47,20 @@ def read_image(list_of_images):
     X=[]
     y=[]
     
-    for f in list_of_images:
+#     for f in list_of_images:
             
-            imag=Image.open(f,mode='r').convert('L')
-            mimg=imag.resize(thumb_size,Image.ANTIALIAS)
-            np_img=np.array(mimg)
-#            print(np_img.shape)
-            X.append(np_img)
+#             imag=Image.open(f,mode='r').convert('L')
+#             mimg=imag.resize(thumb_size,Image.ANTIALIAS)
+#             np_img=np.array(mimg)
+# #            print(np_img.shape)
+#             X.append(np_img)
+ 
+
+    for image in list_of_images:
+        cf=(cv2.resize(cv2.imread(image,cv2.IMREAD_COLOR),(nrows,ncolumns),interpolation=cv2.INTER_CUBIC))
+        X.append(cf)
+        
+       
             
             
             if 'pnemonia' in f:
@@ -61,9 +68,9 @@ def read_image(list_of_images):
             elif 'normal' in f:
                 y.append(0)
         
-    return X,y
+              return X,y
 #
-X,y=read_image(train_imgs)
+X,y=read_img(train_imgs)
 #
 plt.figure(figsize=(20,10))
 columns=5
