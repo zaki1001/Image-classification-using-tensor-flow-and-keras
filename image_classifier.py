@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jun 15 16:25:08 2019
+Created on Mon Jul  8 15:37:47 2019
 
 @author: zaki
 """
+
+import cv2
 
 from PIL import Image
 import os
@@ -15,76 +17,58 @@ import gc
 import matplotlib.pyplot as plt
 #!pip install tensorflow
 #oc=os.getcwd()
+from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
 
 
-train_dir='C:/Users/zaki/Videos/chest_xray/train'
-test_dir='C:/Users/zaki/Videos/chest_xray/test'
+test_imgs='C:/Users/zaki/Downloads/animals/test/
 
 
-
-
-train_pnemo = []
-train_norm=[]
-for path, subdirs, files in os.walk('C:/Users/zaki/Videos/chest_xray/train/'):
+train_bears = []
+train_pandas=[]
+for path, subdirs, files in os.walk('C:/Users/zaki/Downloads/animals/train'):
        for name in files:
-           if 'pnemonia' in path:
-               train_pnemo.append(os.path.join(path, name))
-           elif 'normal' in path:
-               train_norm.append(os.path.join(path,name))
-                
-train_imgs=train_pnemo+train_norm
-random.shuffle(train_imgs)
-import matplotlib.image as mpimg
-for ima in train_imgs[0:3]:
-    img=mpimg.imread(ima)
-    imgplot=plt.imshow(img)
-    plt.show()
+           if 'bears' in path:
+               train_bears.append(os.path.join(path, name))
+           elif 'pandas' in path:
+               train_pandas.append(os.path.join(path,name))
 
-thumb_size=((150,150))
+train_imgs=train_bears+train_pandas
+random.shuffle(train_imgs)
+               
+nrows=150
+ncolumns=150
 channels=1
 
-def read_image(list_of_images):
+
+def read_img(list_of_images):
+
     X=[]
     y=[]
-    
-#     for f in list_of_images:
-            
-#             imag=Image.open(f,mode='r').convert('L')
-#             mimg=imag.resize(thumb_size,Image.ANTIALIAS)
-#             np_img=np.array(mimg)
-# #            print(np_img.shape)
-#             X.append(np_img)
- 
 
     for image in list_of_images:
         cf=(cv2.resize(cv2.imread(image,cv2.IMREAD_COLOR),(nrows,ncolumns),interpolation=cv2.INTER_CUBIC))
         X.append(cf)
         
-       
-            
-            
-            if 'pnemonia' in f:
+        if 'bears' in image:
                 y.append(1)
-            elif 'normal' in f:
+        elif 'pandas' in image:
                 y.append(0)
-        
-              return X,y
-#
-X,y=read_img(train_imgs)
-#
-plt.figure(figsize=(20,10))
-columns=5
-for i in range(columns):
-    plt.subplot(5/columns+1,columns,i+1)
-    plt.imshow(X[i])
-X=np.asarray(X)
-y=np.asarray(y)
+                    
+                return X,y           
 
-import seaborn as sns
-#sns.countplot(y)
-#plt.title("Labels for pnemo and norm")
+X,y=read_img(train_imgs)
+
+#X=np.array(X)
+#y=np.array(y)
+#
+#plt.figure(figsize=(20,10))
+#columns=5
+#for i in range(columns):
+#    plt.subplot(5/columns+1,columns,i+1)
+#    plt.imshow(X[i])
 from sklearn.model_selection import train_test_split
-X_train,X_val,y_train,y_val=train_test_split(X,y,test_size=20,random_state=2)
+X_train,X_val,y_train,y_val=train_test_split(X,y,test_size=0.20,random_state=2)
+
 ntrain=len(X_train)
 nval=len(y_train)
 batch_size=32
@@ -93,44 +77,46 @@ from tensorflow import keras
 from keras import layers
 from keras import models
 from keras import optimizers
-from keras.preprocessing.image import ImageDataGenerator
-from keras.preprocessing.image import img_to_array,load_img
-
-from keras.layers import Dense, Activation
-model = keras.Sequential([
-    keras.layers.Flatten(input_shape=(150, 150)),
-    keras.layers.Dense(128, activation=tf.nn.relu),
-    
-    keras.layers.Dense(64, activation=tf.nn.relu),
-    keras.layers.Dense(32, activation=tf.nn.relu),
-    keras.layers.Dense(2, activation=tf.nn.softmax)
-])
-
-model.compile(optimizer='adam', 
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
-
-#train_datagen=ImageDataGenerator(rescale=1./255,
-#                                 rotation_range=40,
-#                                 width_shift_range=0.2,
-#                                 height_shift_range=0.2,
-#                                 shear_range=0.2,
-#                                 zoom_range=0.2,
-#                                 horizontal_flip=True,)
-#val_datagen=ImageDataGenerator(rescale=1./255)
+#from keras import ImageDataGenerator
+from keras import img_to_array,load_img
 #
-#train_generator=train_datagen.flow(X_train,y_train,batch_size=batch_size)
-#val_generator=val_datagen.flow(X_val,y_val,batch_size=batch_size)
-#
-#model.fit_generator(train_generator,steps_per_epoch=ntrain//batch_size,
-#                            epochs=32,validation_data=val_generator,
-#                            validation_steps=nval//batch_size)
+model=models.Sequential()
+model.add(layers.Conv2D(32,(3,3),activation='relu',input_shape=(150,150,3)))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Conv2D(64,(3,3),activation='relu'))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Conv2D(128,(3,3),activation='relu'))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Conv2D(128,(3,3),activation='relu'))
+model.add(layers.MaxPooling2D((2,2)))
+model.add(layers.Flatten())
+model.add(layers.Dropout())
+model.add(layers.Dense(512,activation='relu'))
+model.add(layers.Dense(1,activation='sigmoid'))
+model.compile(loss='binary_crossentropy',optimizer=optimizers.RMSprop(lr=1e-4),metrics=['acc'])
 
-model.fit(X_train,y_train, epochs=100)
-#score=model.evaluate(X_train,y_train)
-pred = model.predict_classes(X_val)
+train_datagen=ImageDataGenerator(rescale=1./255,
+                                  rotation_range=40,
+                                  width_shift_range=0.2,
+                                  height_shift_range=0.2,
+                                  shear_range=0.2,
+                                  zoom_range=0.2,
+                                  horizontal_flip=True,
+                                  fill_mode='nearest')
+val_datagen=ImageDataGenerator(rescale=1./255)
+
+train_generator=train_datagen.flow(X_train,y_train,batch_size=batch_size)
+val_gen=val_datagen.flow(X_val,y_val,batch_size=batch_size)
+
+MDL=model.fit_generator(train_generator,steps_per_epoch=ntrain//batch_size,
+                        epochs=64,
+                        validation_data=val_generator,
+                        validation_steps=nval//batch_size)
+model.save_weights('model_wieghts.h5')
+model.save('model_keras.h5')
+
+X_test,y_test=read_img(test_imgs[0:10])
+X=np.array(X_test)
+pred=model.predict_classes(X_test)
 from sklearn.metrics import classification_report, confusion_matrix
-conf=confusion_matrix(y_val, pred)
-test_loss, test_acc = model.evaluate(X_val,y_val)
-
-print('Test accuracy:', test_acc)
+conf=confusion_matrix(y_test, pred)
